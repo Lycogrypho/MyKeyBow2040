@@ -1,0 +1,4 @@
+this is a text from file00.txt
+replace this file with something more meaningful
+
+:-)
