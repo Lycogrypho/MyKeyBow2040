@@ -156,9 +156,9 @@ layer_7 =     {0:   (( 1,  5,  1,  5,   5,  1,  5,  1,   5,  1,  5,  1,   1,  5,
                2:   (( 0,  1,  2,  3,   0,  2,  3,  4,   0,  3,  4,  5,   0,  1,  2,  1),  8, 13),
                3:   (( 1,  2,  3,  4,  12, 13, 14,  5,  11, 16, 15,  6,  10,  9,  8,  7), 32,  7),
                4:   (( 1,  2,  3,  4,   0,  1,  2,  3,   1,  2,  3,  4,   2,  3,  4,  5), 10, 13),
-               5:   (( 2,  1,  2,  3,   1,  0,  1,  2,   2,  1,  2,  3,   3,  2,  3,  4),  8, 13),
-               6:   (( 0,  1,  2,  3,   1,  2,  3,  4,   2,  3,  4,  5,   3,  4,  5,  6), 12, 12),
-               7:   (( 0,  2,  4,  6,   2,  4,  6,  8,   4,  6,  8, 10,   6,  8, 10, 12),  6, 12),
+               5:   (( 1,  2,  3,  4,   2,  3,  4,  3,   3,  4,  3,  2,   4,  3,  2,  1),  8, 13),
+               6:   (( 0,  1,  2,  3,   1,  0,  1,  2,   2,  1,  0,  1,   3,  2,  1,  0), 12, 12),
+               7:   (( 0,  0,  0,  0,   2,  2,  2,  2,   4,  4,  4,  4,   6,  6,  6,  6),  6, 12),
                8:   (( 1, 15,  1, 15,  15,  1, 15,  1,   1, 15,  1, 15,  15,  1, 15,  1),  3, 30),
                9:   (( 4,  2,  4,  6,   2,  0,  2,  4,   4,  3,  4,  6,   6,  5,  6,  8), 12, 20),
                10:  ((12, 10,  8,  6,  10,  8,  6,  3,  10,  8,  6,  3,   8,  6,  3,  0),  6,  5),
@@ -249,6 +249,53 @@ while True:
     # if no key is pressed ensure not locked in layer change mode
     if ((mode == 2) & keybow.none_pressed()):
         mode = 0
+    else:
+        # Loop through all of the keys in the layer and if they're pressed, get the
+        # key code from the layer's key map
+        for k in layers[current_layer].keys():
+            if keys[k].pressed:
+                key_press = layers[current_layer][k]
+
+                # If the key hasn't just fired (prevents refiring)
+                if (not fired) or not (k in set_key_pressed):
+                    if (not fired):
+                        fired = True
+                    set_key_pressed.add(k)
+
+                    # Send the right sort of key press and set debounce for each
+                    # layer accordingly (layer 2 needs a long debounce)
+                    if current_layer == 1 or current_layer == 4:
+                        debounce = short_debounce
+                        keyboard.send(key_press)
+                    elif current_layer == 2:
+                        debounce = 2*long_debounce
+                        layout.write(key_press)
+                    elif current_layer == 3:
+                        debounce = short_debounce
+                        consumer_control.send(key_press)
+                    elif current_layer == 5:
+                        #TODO: Check that block num is on
+                        debounce = long_debounce
+                        keyboard.press(Keycode.ALT)
+                        for combo_k in key_press:
+                            keyboard.press(combo_k)
+                            #print(combo_k)
+                        keyboard.release_all()
+                    elif current_layer == 6:
+                        debounce = 3 * long_debounce
+                        readAndSend(key_press)
+                    elif current_layer == 7:
+                        debounce = 3 * long_debounce
+                        if k!= 0:
+                            shape = k
+                            #print(shape)
+
+                        #mode = 0
+            else:
+                set_key_pressed.discard(k)
+
+
+
 
     if modifier.held:
         # set to looking to change the keypad layer
@@ -267,7 +314,7 @@ while True:
             # Change current layer if layer key is pressed
             if selectors[layer].pressed:
                 if mode >= 1:
-                    mode = 0
+                    mode = 2
                     current_layer = layer
                     # print("Layer Changed:", current_layer)
                     # Set the LEDs for each key in the current layer
@@ -295,50 +342,7 @@ while True:
                     keys[k].set_led(*colours[current_layer])
                     
 
-    # Loop through all of the keys in the layer and if they're pressed, get the
-    # key code from the layer's key map
-    for k in layers[current_layer].keys():
-        if keys[k].pressed:
-            key_press = layers[current_layer][k]
 
-            # If the key hasn't just fired (prevents refiring)
-            if (not fired) or not (k in set_key_pressed):
-                if (not fired):
-                    fired = True
-                set_key_pressed.add(k)
-
-                # Send the right sort of key press and set debounce for each
-                # layer accordingly (layer 2 needs a long debounce)
-                if current_layer == 1 or current_layer == 4:
-                    debounce = short_debounce
-                    keyboard.send(key_press)
-                elif current_layer == 2:
-                    debounce = 2*long_debounce
-                    layout.write(key_press)
-                elif current_layer == 3:
-                    debounce = short_debounce
-                    consumer_control.send(key_press)
-                elif current_layer == 5:
-                    #TODO: Check that block num is on
-                    debounce = long_debounce
-                    keyboard.press(Keycode.ALT)
-                    for combo_k in key_press:
-                        keyboard.press(combo_k)
-                        #print(combo_k)
-                    keyboard.release_all()
-                elif current_layer == 6:
-                    debounce = 3 * long_debounce
-                    readAndSend(key_press) 
-                elif current_layer == 7:
-                    debounce = 3 * long_debounce
-                    if k!= 0:
-                        shape = k
-                        #print(shape)
-                        
-                    #mode = 0
-        else:
-            set_key_pressed.discard(k)
-            
 
 
     # Enhanced bounce control:  
